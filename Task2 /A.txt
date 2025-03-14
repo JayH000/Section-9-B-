@@ -1,0 +1,40 @@
+Forward computational graph
+Input Image  
+    │  
+    ▼  
+Convolution Layer (W1, b1) → Feature Map (Z1)  
+    │  
+    ▼  
+ReLU Activation → Activated Feature Map (A1)  
+    │  
+    ▼  
+Pooling Layer → Reduced Feature Map (P1)  
+    │  
+    ▼  
+Fully Connected Layer (W2, b2) → Output (Z2)  
+    │  
+    ▼  
+Softmax Activation → Final Prediction (Y^)  
+```````````````````````````````````
+Backward computational graph 
+
+Final Prediction (Y^)  
+    ▲  
+    │ dL/dY^  
+Softmax Activation  
+    ▲  
+    │ dL/dZ2  
+Fully Connected Layer (W2, b2)  
+    ▲  
+    │ dL/dP1  
+Pooling Layer (No parameters, passes gradients)  
+    ▲  
+    │ dL/dA1  
+ReLU Activation (Derivative 1 if Z1 > 0, else 0)  
+    ▲  
+    │ dL/dZ1  
+Convolution Layer (W1, b1)  
+    ▲  
+    │ dL/dX  
+Input Image  
+
