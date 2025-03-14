@@ -3,47 +3,36 @@ Copied from Task 1 part b
 """
 
 import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
 
 class MLP:
     def __init__(self, layers, activation='relu', learning_rate=0.01):
-        """
-        layers: List specifying number of neurons per layer.
-        activation: 'relu' or 'sigmoid'.
-        learning_rate: Step size for weight updates.
-        """
+       
         self.layers = layers
         self.learning_rate = learning_rate
-        self.activation_func = self.relu if activation == 'relu' else self.sigmoid
-        self.activation_derivative = self.relu_derivative if activation == 'relu' else self.sigmoid_derivative
-        
-        # Initialize weights and biases
         self.weights = [np.random.randn(layers[i], layers[i-1]) * np.sqrt(2/layers[i-1]) for i in range(1, len(layers))]
         self.biases = [np.zeros((layers[i], 1)) for i in range(1, len(layers))]
-
-    def relu(self, z):
-        return np.maximum(0, z)
-
-    def relu_derivative(self, z):
-        return (z > 0).astype(float)
-
-    def sigmoid(self, z):
-        return 1 / (1 + np.exp(-z))
-
-    def sigmoid_derivative(self, z):
-        sig = self.sigmoid(z)
-        return sig * (1 - sig)
+    def softmax(self, z):
+        exp_z = np.exp(z - np.max(z, axis=0, keepdims=True))  # Stability fix
+        return exp_z / np.sum(exp_z, axis=0, keepdims=True)
+    
+    def softmax_derivative(self, output, Y):
+        return output - Y     
+       
+   
 
     def forward(self, X):
-        """
-        Perform forward pass through the network.
-        """
+        
         A = X.T  # Ensure input is column vector
         activations = [A]  
         zs = []  
 
         for W, b in zip(self.weights, self.biases):
             Z = np.dot(W, A) + b  # Linear transformation
-            A = self.activation_func(Z)  # Apply activation
+            A = self.softmax(Z) if W.shape[0] == 10 else np.maximum(0, Z)  # Softmax for last layer
+            zs.append(Z)
             zs.append(Z)
             activations.append(A)
 
@@ -64,12 +53,12 @@ class MLP:
 
         # Backpropagate errors
         for i in reversed(range(len(self.weights))):
-            dW[i] = np.einsum("bi,bj->bij", delta.T, activations[i].T).mean(axis=0)
-            db[i] = np.mean(delta, axis=1, keepdims=True)
+            dW[i] =  np.dot(delta, activations[i].T) / m
+            db[i] =np.mean(delta, axis=1, keepdims=True)
 
             # Compute delta for next layer
             if i > 0:
-                delta = np.dot(self.weights[i].T, delta) * self.activation_derivative(zs[i-1])
+                delta = np.dot(self.weights[i].T, delta) * (zs[i-1] > 0)  # ReLU derivative
 
         # Update weights and biases
         for i in range(len(self.weights)):
@@ -82,23 +71,47 @@ class MLP:
         """
         for epoch in range(epochs):
             self.backward(X, Y)
-            if epoch % 100 == 0:
-                loss = np.mean((self.forward(X)[0][-1] - Y.T) ** 2)
-                print(f"Epoch {epoch}, Loss: {loss:.4f}")
-
+            if epoch % 10 == 0:
+               predictions = self.predict(X)
+               loss = -np.mean(Y * np.log(predictions + 1e-9))  # Cross-entropy loss
+               accuracy = np.mean(np.argmax(predictions, axis=1) == np.argmax(Y, axis=1))
+               losses.append(loss)
+               accuracies.append(accuracy)
+               print(f"Epoch {epoch}, Loss: {loss:.4f}, Accuracy: {accuracy:.4f}")
+        return losses, accuracies
+    
     def predict(self, X):
         """
         Predict class labels.
         """
         return self.forward(X)[0][-1].T  # Return final activations
 
-# Example Usage
-if __name__ == "__main__":
-    # Example: XOR problem
-    X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-    Y = np.array([[0], [1], [1], [0]])
+# Load and preprocess MNIST data
+X_train_flat = X_train.reshape(X_train.shape[0], -1)
+X_test_flat = X_test.reshape(X_test.shape[0], -1)
+num_classes = 10
 
-    mlp = MLP(layers=[2, 4, 2, 1], activation='relu', learning_rate=0.1)
-    mlp.train(X, Y, epochs=1000)
+y_train_onehot = np.eye(num_classes)[y_train]
+y_test_onehot = np.eye(num_classes)[y_test]
 
-    print("Predictions:", mlp.predict(X))
+# Train MLP
+mlp = MLP(layers=[784, 128, 64, 10], learning_rate=0.01)
+losses, accuracies = mlp.train(X_train_flat, y_train_onehot, epochs=100)
+
+# Plot convergence
+plt.figure()
+plt.plot(losses, label='Loss')
+plt.plot(accuracies, label='Accuracy')
+plt.xlabel("Epochs")
+plt.ylabel("Loss/Accuracy")
+plt.legend()
+plt.title("MLP Training Convergence")
+plt.show()
+
+# Confusion matrix
+predictions = np.argmax(mlp.predict(X_test_flat), axis=1)
+cm = confusion_matrix(y_test, predictions)
+disp = ConfusionMatrixDisplay(cm, display_labels=range(10))
+disp.plot()
+plt.title("MLP Confusion Matrix")
+plt.show()
