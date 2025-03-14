@@ -1,28 +1,30 @@
 import numpy as np
 import struct
 
-
 def load_mnist_images(filename):
     with open(filename, 'rb') as f:
-       magic, num, rows, cols = struct.unpack('>IIII', f.read(16))
-    if magic != 2051:
+        magic, num, rows, cols = struct.unpack('>IIII', f.read(16))
+        if magic != 2051:
             raise ValueError("Invalid magic number in image file!")
-    images = np.frombuffer(f.read(), dtype=np.uint8).reshape(num, rows, cols)
+        images = np.frombuffer(f.read(), dtype=np.uint8).reshape(num, rows, cols)
     return images.astype(np.float32) / 255.0  # Normalize to [0,1]  
 
 def load_mnist_labels(filename):
     with open(filename, 'rb') as f:
-       magic, num = struct.unpack('>II', f.read(8))
-       if magic != 2049:
-        raise ValueError("Invalid magic number in label file!")
-    labels = np.frombuffer(f.read(), dtype=np.uint8)
+        magic, num = struct.unpack('>II', f.read(8))
+        if magic != 2049:
+            raise ValueError("Invalid magic number in label file!")
+        labels = np.frombuffer(f.read(), dtype=np.uint8)
     return labels
 
+
+
 # File paths
-train_images_path = "/Users/domholguin/Documents/MNIST/train-images-idx3-ubyte"
-train_labels_path = "/Users/domholguin/Documents/MNIST/train-labels-idx1-ubyte"
-test_images_path = "/Users/domholguin/Documents/MNIST/t10k-images-idx3-ubyte"
-test_labels_path = "/Users/domholguin/Documents/MNIST/t10k-labels-idx1-ubyte"
+train_images_path = "/Users/domholguin/Documents/MNIST/train-images-idx3-ubyte/train-images-idx3-ubyte"
+train_labels_path = "/Users/domholguin/Documents/MNIST/train-labels-idx1-ubyte/train-labels-idx1-ubyte"
+test_images_path = "/Users/domholguin/Documents/MNIST/t10k-images-idx3-ubyte/t10k-images-idx3-ubyte"
+test_labels_path = "/Users/domholguin/Documents/MNIST/t10k-labels-idx1-ubyte/t10k-labels-idx1-ubyte"
+
 
 
 
